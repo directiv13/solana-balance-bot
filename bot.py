@@ -34,6 +34,7 @@ class TelegramBot:
                 "/add <addr1> <addr2> ... - Add wallet(s) to tracking\n"
                 "/remove <addr1> <addr2> ... - Remove wallet(s) from tracking\n"
                 "/balance - Show total USDT balance (forces update)\n"
+                "/stats - Show overall statistics\n"
             )
 
         welcome_message += (
@@ -155,6 +156,17 @@ class TelegramBot:
         
         await update.message.reply_text(message, parse_mode="Markdown")
     
+    async def stats_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /stats command to show overall statistics."""
+        pushover_subcriptions = await self.db.get_all_pushover_subscriptions()
+        
+        message = (
+            f"📊 *Overall Statistics*\n\n"
+            f"Pushover Subscriptions: {len(pushover_subcriptions)}"
+        )
+        
+        await update.message.reply_text(message, parse_mode="Markdown")
+
     async def enable_pushover_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /enable_pushover command to subscribe to Pushover notifications."""
         if not context.args or len(context.args) != 1:

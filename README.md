@@ -336,7 +336,74 @@ SELECT * FROM tracked_wallets;
 SELECT * FROM balances;
 ```
 
+## Testing & Debugging
+
+### Test Configuration Locally
+
+Before deploying, test your configuration:
+
+```bash
+python test_config.py
+```
+
+This will verify:
+- All required environment variables are set
+- Database connection works
+- Telegram bot token is valid
+- Helius RPC is accessible
+- Pushover configuration is correct
+
+### Manual Deployment Script
+
+For quick manual deployments (alternative to GitHub Actions):
+
+```bash
+# Set your VPS details
+export VPS_HOST=your-vps-ip
+export VPS_USER=deployer
+export VPS_PATH=/opt/solana_balance_bot
+
+# Run deployment
+bash deploy.sh
+```
+
+### VPS Status Check
+
+On your VPS, use the status check script:
+
+```bash
+cd /opt/solana_balance_bot
+bash check_status.sh
+```
+
+This shows:
+- Docker service status
+- Container status and logs
+- Configuration file status
+- Disk space
+- Helpful diagnostic commands
+
+### Viewing Live Logs
+
+**On VPS:**
+```bash
+cd /opt/solana_balance_bot
+docker compose logs -f
+```
+
+**Via SSH:**
+```bash
+ssh deployer@your-vps-ip "cd /opt/solana_balance_bot && docker compose logs -f"
+```
+
 ## Troubleshooting
+
+### Container not starting
+1. Check logs: `docker compose logs`
+2. Verify `.env` file exists and has all required values
+3. Run `python test_config.py` locally with same `.env`
+4. Check disk space: `df -h`
+5. Rebuild image: `docker compose up -d --build`
 
 ### Bot not responding
 - Check if the container is running: `docker compose ps`
@@ -357,6 +424,11 @@ SELECT * FROM balances;
 - Ensure only one instance is running
 - Check file permissions on `data/` directory
 
+### Deployment fails with "version is obsolete"
+- This is just a warning, not an error
+- The `version` field has been removed from docker-compose.yml
+- Update your repository to get the latest version
+
 ## Development
 
 ### Project Structure
@@ -372,9 +444,13 @@ solana_balance_bot/
 ├── helius.py                # Helius RPC client
 ├── main.py                  # Main application entry point
 ├── pushover.py              # Pushover notification client
+├── test_config.py           # Configuration testing script
 ├── requirements.txt         # Python dependencies
 ├── Dockerfile               # Docker image definition
 ├── docker-compose.yml       # Docker Compose configuration
+├── setup_vps.sh             # VPS setup automation script
+├── deploy.sh                # Manual deployment script
+├── check_status.sh          # VPS status check script
 ├── .env.example             # Example environment variables
 ├── .gitignore              # Git ignore rules
 └── README.md               # This file

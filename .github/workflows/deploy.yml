@@ -60,8 +60,25 @@ jobs:
             docker compose build --no-cache
             docker compose up -d
             
+            # Wait a few seconds for the container to start
+            echo "⏳ Waiting for container to start..."
+            sleep 5
+            
+            # Check container status
+            echo "📊 Container status:"
+            docker compose ps
+            
             # Show logs
-            docker compose logs --tail=50
+            echo "📝 Recent logs:"
+            docker compose logs --tail=100
+            
+            # Check if container is running
+            if ! docker compose ps | grep -q "Up"; then
+              echo "❌ Container failed to start!"
+              echo "📝 Full logs:"
+              docker compose logs
+              exit 1
+            fi
             
             echo "✅ Deployment completed successfully"
           ENDSSH
@@ -72,4 +89,18 @@ jobs:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_PATH: ${{ secrets.VPS_PATH }}
         run: |
-          ssh $VPS_USER@$VPS_HOST "cd $VPS_PATH && docker compose ps"
+          ssh $VPS_USER@$VPS_HOST << 'ENDSSH'
+            cd $VPS_PATH
+            echo "📊 Final container status:"
+            docker compose ps
+            
+            # Show running containers
+            if docker compose ps | grep -q "Up"; then
+              echo "✅ Container is running"
+            else
+              echo "❌ Container is not running"
+              echo "📝 Last 50 log lines:"
+              docker compose logs --tail=50
+              exit 1
+            fi
+          ENDSSH
