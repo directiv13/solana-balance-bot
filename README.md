@@ -160,16 +160,56 @@ Add the following secrets to your GitHub repository (Settings → Secrets and va
 
 | Secret Name | Description | Example |
 |-------------|-------------|---------|
-| `VPS_SSH_KEY` | Private SSH key for VPS access | `-----BEGIN OPENSSH PRIVATE KEY-----...` |
+| `VPS_SSH_KEY` | Private SSH key for deployer user | `-----BEGIN OPENSSH PRIVATE KEY-----...` |
 | `VPS_HOST` | VPS IP address or hostname | `192.168.1.100` or `myserver.com` |
-| `VPS_USER` | SSH username | `root` or `ubuntu` |
+| `VPS_USER` | SSH username (use 'deployer') | `deployer` |
 | `VPS_PATH` | Deployment path on VPS | `/opt/solana_balance_bot` |
 
 ### VPS Setup
 
+#### Option 1: Automated Setup (Recommended)
+
+1. **SSH into your VPS as root**
+   ```bash
+   ssh root@your-vps-ip
+   ```
+
+2. **Download and run the setup script**
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/yourusername/solana_balance_bot/main/setup_vps.sh -o setup_vps.sh
+   chmod +x setup_vps.sh
+   sudo ./setup_vps.sh
+   ```
+
+   The script will:
+   - Install Docker and Docker Compose
+   - Create a 'deployer' user with proper permissions
+   - Set up deployment directories
+   - Configure basic security
+
+3. **Change the deployer password**
+   ```bash
+   passwd deployer
+   ```
+
+4. **Set up SSH key for deployer user**
+   ```bash
+   # On your local machine, copy your SSH public key
+   ssh-copy-id deployer@your-vps-ip
+   ```
+
+5. **Switch to deployer user and configure .env**
+   ```bash
+   su - deployer
+   cd /opt/solana_balance_bot
+   nano .env  # Add your configuration (see .env.example)
+   ```
+
+#### Option 2: Manual Setup
+
 1. **SSH into your VPS**
    ```bash
-   ssh user@your-vps-ip
+   ssh root@your-vps-ip
    ```
 
 2. **Install Docker and Docker Compose**
@@ -183,16 +223,32 @@ Add the following secrets to your GitHub repository (Settings → Secrets and va
    sudo apt-get install docker-compose-plugin
    ```
 
-3. **Create deployment directory**
+3. **Create deployer user**
    ```bash
-   mkdir -p /opt/solana_balance_bot
-   cd /opt/solana_balance_bot
+   useradd -m -s /bin/bash deployer
+   usermod -aG docker deployer
+   passwd deployer
    ```
 
-4. **Create .env file**
+4. **Create deployment directory**
    ```bash
-   nano .env
-   # Add your configuration (see .env.example)
+   mkdir -p /opt/solana_balance_bot
+   chown -R deployer:deployer /opt/solana_balance_bot
+   ```
+
+5. **Set up SSH for deployer**
+   ```bash
+   mkdir -p /home/deployer/.ssh
+   chmod 700 /home/deployer/.ssh
+   # Add your public key to /home/deployer/.ssh/authorized_keys
+   chown -R deployer:deployer /home/deployer/.ssh
+   ```
+
+6. **Switch to deployer and create .env file**
+   ```bash
+   su - deployer
+   cd /opt/solana_balance_bot
+   nano .env  # Add your configuration (see .env.example)
    ```
 
 ### Deploy
