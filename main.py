@@ -30,7 +30,10 @@ class BalanceMonitor:
     
     async def sync_balances(self) -> float:
         """
-        Sync all wallet balances from Helius.
+        Sync all wallet balances from Helius using optimized batch requests.
+        
+        Uses getMultipleAccounts with batches of 100 wallets per request
+        and binary parsing for maximum performance. Rate limited to 10 req/s.
         
         Returns:
             Total USDT balance across all wallets
@@ -43,11 +46,12 @@ class BalanceMonitor:
         
         logger.info(f"Syncing balances for {len(wallets)} wallet(s)")
         
-        # Fetch balances from Helius
+        # Fetch balances from Helius using optimized batch requests
+        # This uses getMultipleAccounts (100 wallets per request) with binary parsing
         async with HeliusClient() as helius:
             balances = await helius.get_multiple_balances(wallets)
         
-        # Update database
+        # Update database with individual balances
         for address, balance in balances.items():
             await self.db.update_balance(address, balance)
         

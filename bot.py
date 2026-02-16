@@ -150,9 +150,7 @@ class TelegramBot:
         
         message = "🏆 *Top 5 Wallets by USDT Balance*\n\n"
         for idx, (address, balance) in enumerate(top_wallets, 1):
-            # Truncate address for readability
-            short_addr = f"{address[:4]}...{address[-4:]}"
-            message += f"{idx}. `{short_addr}` - {balance:,.2f} USDT\n"
+            message += f"{idx}. `{address}` - {balance:,.2f} USDT\n"
         
         await update.message.reply_text(message, parse_mode="Markdown")
     
