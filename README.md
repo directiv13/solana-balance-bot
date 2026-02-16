@@ -176,7 +176,7 @@ Add the following secrets to your GitHub repository (Settings → Secrets and va
 
 2. **Download and run the setup script**
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/yourusername/solana_balance_bot/main/setup_vps.sh -o setup_vps.sh
+   curl -fsSL https://raw.githubusercontent.com/yourusername/solana-balance-bot/master/setup_vps.sh -o setup_vps.sh
    chmod +x setup_vps.sh
    sudo ./setup_vps.sh
    ```

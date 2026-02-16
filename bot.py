@@ -45,6 +45,13 @@ class TelegramBot:
 
     async def add_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /add command to add wallet addresses."""
+
+        if not self._is_admin(update.effective_user.id):
+            await update.message.reply_text(
+                "❌ You do not have permission to use this command."
+            )
+            return
+
         if not context.args:
             await update.message.reply_text(
                 "❌ Please provide at least one wallet address.\n"
@@ -66,6 +73,13 @@ class TelegramBot:
     
     async def remove_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /remove command to remove wallet addresses."""
+
+        if not self._is_admin(update.effective_user.id):
+            await update.message.reply_text(
+                "❌ You do not have permission to use this command."
+            )
+            return
+
         if not context.args:
             await update.message.reply_text(
                 "❌ Please provide at least one wallet address.\n"
@@ -87,6 +101,13 @@ class TelegramBot:
     
     async def balance_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /balance command to show total balance with forced update."""
+
+        if not self._is_admin(update.effective_user.id):
+            await update.message.reply_text(
+                "❌ You do not have permission to use this command."
+            )
+            return
+
         await update.message.reply_text("🔄 Fetching latest balances...")
         
         # Get all wallets

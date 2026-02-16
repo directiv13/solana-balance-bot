@@ -32,6 +32,9 @@ class Config:
     
     # USDT Mint Address on Solana
     USDT_MINT = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB"
+
+    # Admin user IDs (comma-separated)
+    ADMIN_USER_IDS = set(int(uid.strip()) for uid in os.getenv("ADMIN_USER_IDS", "").split(",") if uid.strip())
     
     @classmethod
     def validate(cls):
