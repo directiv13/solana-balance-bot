@@ -207,6 +207,7 @@ class TelegramBot:
         application.add_handler(CommandHandler("remove", self.remove_command))
         application.add_handler(CommandHandler("balance", self.balance_command))
         application.add_handler(CommandHandler("top_5", self.top_5_command))
+        application.add_handler(CommandHandler("stats", self.stats_command))
         application.add_handler(CommandHandler("enable_pushover", self.enable_pushover_command))
         application.add_handler(CommandHandler("disable_pushover", self.disable_pushover_command))
     
