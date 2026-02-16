@@ -133,17 +133,17 @@ CREATE TABLE pushover_subscriptions (
 
 2. **Build and run with Docker Compose**
    ```bash
-   docker-compose up -d
+   docker compose up -d
    ```
 
 3. **View logs**
    ```bash
-   docker-compose logs -f
+   docker compose logs -f
    ```
 
 4. **Stop the bot**
    ```bash
-   docker-compose down
+   docker compose down
    ```
 
 ## VPS Deployment with GitHub Actions
@@ -313,7 +313,7 @@ The GitHub Actions workflow will:
 
 **Docker:**
 ```bash
-docker-compose logs -f
+docker compose logs -f
 ```
 
 **Local:**
@@ -324,7 +324,7 @@ python main.py
 ### Check Container Status
 
 ```bash
-docker-compose ps
+docker compose ps
 ```
 
 ### Database Inspection
@@ -339,8 +339,8 @@ SELECT * FROM balances;
 ## Troubleshooting
 
 ### Bot not responding
-- Check if the container is running: `docker-compose ps`
-- Check logs: `docker-compose logs -f`
+- Check if the container is running: `docker compose ps`
+- Check logs: `docker compose logs -f`
 - Verify Telegram bot token in `.env`
 
 ### No balance updates

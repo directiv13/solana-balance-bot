@@ -34,7 +34,7 @@ fi
 
 # Install Docker Compose
 echo "🐳 Installing Docker Compose..."
-if ! command -v docker-compose &> /dev/null; then
+if ! docker compose version &> /dev/null; then
     apt-get install -y docker-compose-plugin
     echo "✅ Docker Compose installed successfully"
 else
@@ -166,10 +166,10 @@ echo "   nano $DEPLOY_PATH/.env"
 echo ""
 echo "5. Deploy the application (as deployer):"
 echo "   cd $DEPLOY_PATH"
-echo "   docker-compose up -d"
+echo "   docker compose up -d"
 echo ""
 echo "6. View logs:"
-echo "   docker-compose logs -f"
+echo "   docker compose logs -f"
 echo ""
 echo "🔧 For GitHub Actions deployment, use:"
 echo "   VPS_USER: $DEPLOYER_USER"

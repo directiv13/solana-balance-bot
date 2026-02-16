@@ -56,12 +56,12 @@ jobs:
             fi
             
             # Pull latest images and restart services
-            docker-compose down
-            docker-compose build --no-cache
-            docker-compose up -d
+            docker compose down
+            docker compose build --no-cache
+            docker compose up -d
             
             # Show logs
-            docker-compose logs --tail=50
+            docker compose logs --tail=50
             
             echo "✅ Deployment completed successfully"
           ENDSSH
@@ -72,4 +72,4 @@ jobs:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_PATH: ${{ secrets.VPS_PATH }}
         run: |
-          ssh $VPS_USER@$VPS_HOST "cd $VPS_PATH && docker-compose ps"
+          ssh $VPS_USER@$VPS_HOST "cd $VPS_PATH && docker compose ps"
