@@ -35,7 +35,6 @@ jobs:
         name: Deploy to VPS
         runs-on: ubuntu-latest
         needs: build
-        environment: production
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
@@ -73,10 +72,10 @@ jobs:
                     docker tag solana-balance-bot:${{ github.sha }} solana-balance-bot:latest
                     
                     # Stop and remove old containers
-                    docker-compose down
+                    docker compose down
                     
                     # Start new containers
-                    docker-compose up -d
+                    docker compose up -d
                     
                     # Clean up old images
                     docker image prune -f
@@ -85,7 +84,7 @@ jobs:
                     rm solana-balance-bot.tar.gz
                     
                     # Show status
-                    docker-compose ps
+                    docker compose ps
                 EOF
 
             - name: Health check
@@ -106,10 +105,10 @@ jobs:
                     # Show container status
                     echo ""
                     echo "Container status:"
-                    docker-compose ps
+                    docker compose ps
                     
                     # Check if containers are running
-                    if docker-compose ps | grep -q "Up"; then
+                    if docker compose ps | grep -q "Up"; then
                     echo ""
                     echo "✅ Containers are running"
                     else
@@ -117,7 +116,7 @@ jobs:
                     echo "❌ Containers failed to start"
                     echo ""
                     echo "=== Docker Compose Logs ==="
-                    docker-compose logs --tail=100
+                    docker compose logs --tail=100
                     exit 1
                     fi
 
