@@ -58,13 +58,13 @@ jobs:
 
             - name: Copy files to VPS
               run: |
-                scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no solana-balance-bot.tar.gz ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:~${{ secrets.VPS_PATH }}/
-                scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no docker-compose.yml ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:~${{ secrets.VPS_PATH }}/
+                scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no solana-balance-bot.tar.gz ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:~/${{ secrets.VPS_PATH }}/
+                scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no docker-compose.yml ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:~/${{ secrets.VPS_PATH }}/
 
             - name: Deploy on VPS
               run: |
                 ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
-                    cd ~${{ secrets.VPS_PATH }}
+                    cd ~/${{ secrets.VPS_PATH }}
                 
                     # Load new image
                     docker load < solana-balance-bot.tar.gz
@@ -91,7 +91,7 @@ jobs:
             - name: Health check
               run: |
                 ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
-                    cd ~${{ secrets.VPS_PATH }}
+                    cd ~/${{ secrets.VPS_PATH }}
                     
                     echo "Checking environment file..."
                     if [ ! -f .env ]; then
