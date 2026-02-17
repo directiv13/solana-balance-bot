@@ -27,8 +27,9 @@ class Config:
     # Sync settings
     SYNC_INTERVAL = int(os.getenv("SYNC_INTERVAL", "60"))
     
-    # Alert settings
-    ALERT_THRESHOLD = float(os.getenv("ALERT_THRESHOLD", "1000000"))
+    # Alert settings - Pushover notifications sent when balance crosses these thresholds
+    ALERT_THRESHOLD_LOW = float(os.getenv("ALERT_THRESHOLD_LOW", "1000000"))  # Alert when below this
+    ALERT_THRESHOLD_HIGH = float(os.getenv("ALERT_THRESHOLD_HIGH", "2450000"))  # Alert when above this
     
     # USDT Mint Address on Solana
     USDT_MINT = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB"

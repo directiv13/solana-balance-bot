@@ -71,8 +71,10 @@ class BalanceMonitor:
                 f"💰 Total USDT: {total_balance:,.2f}\n"
             )
             
-            if total_balance < Config.ALERT_THRESHOLD:
-                message += f"\n⚠️ *Alert: Balance below {Config.ALERT_THRESHOLD:,.0f} USDT threshold!*"
+            if total_balance < Config.ALERT_THRESHOLD_LOW:
+                message += f"\n⚠️ *Alert: Balance below {Config.ALERT_THRESHOLD_LOW:,.0f} USDT threshold!*"
+            elif total_balance > Config.ALERT_THRESHOLD_HIGH:
+                message += f"\n🎉 *Alert: Balance exceeds {Config.ALERT_THRESHOLD_HIGH:,.0f} USDT threshold!*"
             
             await self.telegram_app.bot.send_message(
                 chat_id=Config.TELEGRAM_CHANNEL_ID,
@@ -84,34 +86,50 @@ class BalanceMonitor:
             logger.error(f"Error sending Telegram notification: {e}")
     
     async def check_and_send_alerts(self, total_balance: float):
-        """Check threshold and send Pushover alerts if needed."""
-        below_threshold = total_balance < Config.ALERT_THRESHOLD
+        """Check thresholds and send Pushover alerts if needed."""
+        # Determine current state
+        if total_balance < Config.ALERT_THRESHOLD_LOW:
+            current_state = "low"
+        elif total_balance > Config.ALERT_THRESHOLD_HIGH:
+            current_state = "high"
+        else:
+            current_state = "normal"
         
-        # Only send alert if state changed (to prevent spam)
-        if below_threshold and self.last_alert_state != "below":
-            logger.warning(f"Balance below threshold: {total_balance:,.2f} USDT")
-            
+        # Send alert only when crossing a threshold (state change)
+        if current_state != self.last_alert_state:
             # Get all Pushover subscriptions
             subscriptions = await self.db.get_all_pushover_subscriptions()
             
             if subscriptions:
                 user_keys = [user_key for _, user_key in subscriptions]
-                await self.pushover.send_alert(
-                    user_keys=user_keys,
-                    title="⚠️ Low USDT Balance Alert",
-                    message=f"Total balance is {total_balance:,.2f} USDT (threshold: {Config.ALERT_THRESHOLD:,.0f})",
-                    priority=1
-                )
-                logger.info(f"Pushover alerts sent to {len(user_keys)} subscriber(s)")
+                
+                # Send appropriate alert based on state
+                if current_state == "low":
+                    logger.warning(f"Balance below LOW threshold: {total_balance:,.2f} USDT")
+                    await self.pushover.send_alert(
+                        user_keys=user_keys,
+                        title="⚠️ Low USDT Balance Alert",
+                        message=f"Total balance dropped to {total_balance:,.2f} USDT (below {Config.ALERT_THRESHOLD_LOW:,.0f})",
+                        priority=1
+                    )
+                    logger.info(f"LOW threshold alert sent to {len(user_keys)} subscriber(s)")
+                    
+                elif current_state == "high":
+                    logger.warning(f"Balance above HIGH threshold: {total_balance:,.2f} USDT")
+                    await self.pushover.send_alert(
+                        user_keys=user_keys,
+                        title="🎉 High USDT Balance Alert",
+                        message=f"Total balance reached {total_balance:,.2f} USDT (above {Config.ALERT_THRESHOLD_HIGH:,.0f})",
+                        priority=1
+                    )
+                    logger.info(f"HIGH threshold alert sent to {len(user_keys)} subscriber(s)")
+                    
+                elif current_state == "normal" and self.last_alert_state is not None:
+                    # Balance returned to normal range (between thresholds)
+                    logger.info(f"Balance returned to normal range: {total_balance:,.2f} USDT")
             
-            self.last_alert_state = "below"
-        elif not below_threshold and self.last_alert_state == "below":
-            # Balance recovered above threshold
-            logger.info(f"Balance recovered above threshold: {total_balance:,.2f} USDT")
-            self.last_alert_state = "above"
-        elif not below_threshold and self.last_alert_state is None:
-            # Initial state
-            self.last_alert_state = "above"
+            # Update state
+            self.last_alert_state = current_state
     
     async def sync_loop(self):
         """Main sync loop that runs every SYNC_INTERVAL seconds."""

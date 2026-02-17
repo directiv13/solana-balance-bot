@@ -7,69 +7,120 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Set up SSH
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
-      
-      - name: Add VPS to known hosts
-        run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
-      
-      - name: Deploy to VPS
-        env:
-          VPS_USER: ${{ secrets.VPS_USER }}  # Use 'deployer' user created by setup_vps.sh
-          VPS_HOST: ${{ secrets.VPS_HOST }}
-          VPS_PATH: ${{ secrets.VPS_PATH }}  # Default: /opt/solana_balance_bot
-        run: |
-          # Create deployment directory if it doesn't exist
-          ssh $VPS_USER@$VPS_HOST "mkdir -p $VPS_PATH"
-          
-          # Copy files to VPS
-          rsync -avz --delete \
-            --exclude '.git' \
-            --exclude '.github' \
-            --exclude '__pycache__' \
-            --exclude '*.pyc' \
-            --exclude '.env' \
-            --exclude 'data/' \
-            ./ $VPS_USER@$VPS_HOST:$VPS_PATH/
-          
-          # Deploy on VPS
-          ssh $VPS_USER@$VPS_HOST << 'ENDSSH'
-            cd $VPS_PATH
+    build:
+        name: Build Docker Image
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v3
             
-            # Check if .env exists, if not create from example
-            if [ ! -f .env ]; then
-              echo "⚠️ .env file not found. Creating from .env.example"
-              cp .env.example .env
-              echo "⚠️ Please configure .env file with your credentials"
-              exit 1
-            fi
-            
-            # Pull latest images and restart services
-            docker compose down
-            docker compose build --no-cache
-            docker compose up -d
-            
-            # Show logs
-            docker compose logs --tail=50
-            
-            echo "✅ Deployment completed successfully"
-          ENDSSH
-      
-      - name: Verify deployment
-        env:
-          VPS_USER: ${{ secrets.VPS_USER }}
-          VPS_HOST: ${{ secrets.VPS_HOST }}
-          VPS_PATH: ${{ secrets.VPS_PATH }}
-        run: |
-          ssh $VPS_USER@$VPS_HOST "cd $VPS_PATH && docker compose ps"
+            - name: Build Docker image
+              run: |
+                docker build -t solana-balance-bot:${{ github.sha }} .
+
+            - name: Save Docker image as artifact
+              run: docker save solana-balance-bot:${{ github.sha }} | gzip > solana-balance-bot.tar.gz
+
+            - name: Upload artifact
+              uses: actions/upload-artifact@v3
+              with:
+                name: solana-balance-bot-image
+                path: solana-balance-bot.tar.gz
+                retention-days: 1
+
+    deploy:
+        name: Deploy to VPS
+        runs-on: ubuntu-latest
+        needs: build
+        environment: production
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Download artifact
+              uses: actions/download-artifact@v4
+              with:
+                name: solana-balance-bot-image
+
+            - name: Set up SSH
+              run: |
+                mkdir -p ~/.ssh
+                echo "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
+                chmod 600 ~/.ssh/id_rsa
+                ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+
+            - name: Test SSH Connection
+              run: |
+                ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "echo 'SSH connection successful'"
+
+            - name: Copy files to VPS
+              run: |
+                scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no solana-balance-bot.tar.gz ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:~${{ secrets.VPS_PATH }}/
+                scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no docker-compose.yml ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:~${{ secrets.VPS_PATH }}/
+
+            - name: Deploy on VPS
+              run: |
+                ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
+                    cd ~${{ secrets.VPS_PATH }}
+                
+                    # Load new image
+                    docker load < solana-balance-bot.tar.gz
+                    
+                    # Tag as latest
+                    docker tag solana-balance-bot:${{ github.sha }} solana-balance-bot:latest
+                    
+                    # Stop and remove old containers
+                    docker-compose down
+                    
+                    # Start new containers
+                    docker-compose up -d
+                    
+                    # Clean up old images
+                    docker image prune -f
+                    
+                    # Clean up artifact
+                    rm solana-balance-bot.tar.gz
+                    
+                    # Show status
+                    docker-compose ps
+                EOF
+
+            - name: Health check
+              run: |
+                ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
+                    cd ~${{ secrets.VPS_PATH }}
+                    
+                    echo "Checking environment file..."
+                    if [ ! -f .env ]; then
+                    echo "❌ .env file not found! Please create it on the VPS."
+                    echo "Run: ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} 'nano ~${{ secrets.VPS_PATH }}/.env'"
+                    exit 1
+                    fi
+                    
+                    echo "Waiting for services to start..."
+                    sleep 15
+                    
+                    # Show container status
+                    echo ""
+                    echo "Container status:"
+                    docker-compose ps
+                    
+                    # Check if containers are running
+                    if docker-compose ps | grep -q "Up"; then
+                    echo ""
+                    echo "✅ Containers are running"
+                    else
+                    echo ""
+                    echo "❌ Containers failed to start"
+                    echo ""
+                    echo "=== Docker Compose Logs ==="
+                    docker-compose logs --tail=100
+                    exit 1
+                    fi
+
+            - name: Cleanup
+              if: always()
+              run: rm -f ~/.ssh/id_rsa
